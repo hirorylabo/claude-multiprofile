@@ -56,6 +56,7 @@ import {
   ghTokenOverride,
   defaultGhConfigDirFor,
   addAlias,
+  profileShell,
 } from "../code.js";
 import { detectShell, rcPathForShell } from "../shell.js";
 import { COLORS } from "../appclone.js";
@@ -368,6 +369,7 @@ async function enableGhForProfile(profile) {
     aliasName: profile.code.aliasName,
     configDir: profile.code.configDir,
     ghConfigDir,
+    ...profileShell(profile),
   });
   ok(`Alias "${profile.code.aliasName}" updated in ${pathStr(tildify(rcPath))}.`);
 

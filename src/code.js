@@ -379,23 +379,34 @@ export function seedConfigDir(fromDir, toDir, { userConfigFile = DEFAULT_USER_CO
 
 // ---- Shell alias setup ---------------------------------------------------
 
-export function addAlias({ aliasName, configDir, ghConfigDir }) {
+// Which shell and rc file an existing profile's alias lives in: the ones it
+// recorded when it was created, falling back to the current shell only for
+// profiles that predate the record. Editing an existing profile must use these,
+// not $SHELL (#21), or `remove` leaves the alias behind and `rename` writes the
+// new one into a different file.
+export function profileShell(profile) {
+  const code = (profile && profile.code) || {};
+  const shell = code.shell || detectShell();
+  return { shell, rcPath: code.rcPath || rcPathForShell(shell) };
+}
+
+// `shell` and `rcPath` default to the current shell, which is right for a new
+// profile; pass profileShell(profile) when editing an existing one.
+export function addAlias({ aliasName, configDir, ghConfigDir, shell = detectShell(), rcPath = rcPathForShell(shell) }) {
   // We rebuild the entire managed block on every write rather than
   // appending. This keeps the aliases in a stable order (alphabetical)
   // and prevents duplicates.
-  const shell = detectShell();
-  const existing = readManagedAliases(shell).filter((a) => a.name !== aliasName);
+  const existing = readManagedAliases(shell, rcPath).filter((a) => a.name !== aliasName);
   const newLine = buildAliasLine(shell, aliasName, configDir, ghConfigDir);
   const allLines = [...existing.map((a) => a.line), newLine].sort();
-  const rcPath = writeAliases(shell, allLines);
+  writeAliases(shell, allLines, rcPath);
   return { shell, rcPath };
 }
 
-export function removeAlias(aliasName) {
-  const shell = detectShell();
-  const remaining = readManagedAliases(shell).filter((a) => a.name !== aliasName);
+export function removeAlias(aliasName, { shell = detectShell(), rcPath = rcPathForShell(shell) } = {}) {
+  const remaining = readManagedAliases(shell, rcPath).filter((a) => a.name !== aliasName);
   const lines = remaining.map((a) => a.line).sort();
-  const rcPath = writeAliases(shell, lines);
+  writeAliases(shell, lines, rcPath);
   return { shell, rcPath };
 }
 

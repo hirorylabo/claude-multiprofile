@@ -52,6 +52,7 @@ import {
 import {
   DEFAULT_CLAUDE_CONFIG_DIR,
   ghTokenOverride,
+  profileShell,
   copiedTranscripts,
   pathsIntoOtherProfile,
   rebaseJsonFile,
@@ -387,8 +388,15 @@ function checkProfiles(t, reg) {
     return;
   }
 
-  const shell = detectShell();
-  const aliasNames = new Set(readManagedAliases(shell).map((a) => a.name));
+  // Each profile's alias is looked up in the rc file it recorded, not the one
+  // for $SHELL (#21): from a session whose $SHELL differs, every alias used to
+  // read missing. Files are read once each.
+  const aliasesIn = new Map();
+  const aliasesAt = (p) => {
+    const { shell, rcPath } = profileShell(p);
+    if (!aliasesIn.has(rcPath)) aliasesIn.set(rcPath, new Set(readManagedAliases(shell, rcPath).map((a) => a.name)));
+    return { names: aliasesIn.get(rcPath), rcPath };
+  };
 
   // Detect two profiles pointing at the same directory, which is a genuine
   // conflict where each would clobber the other's state.
@@ -432,10 +440,11 @@ function checkProfiles(t, reg) {
     }
 
     if (p.code && p.code.aliasName) {
-      if (aliasNames.has(p.code.aliasName)) {
-        console.log(`    ✓ Alias "${p.code.aliasName}" present in ${tildify(rcPathForShell(shell))}`);
+      const { names, rcPath } = aliasesAt(p);
+      if (names.has(p.code.aliasName)) {
+        console.log(`    ✓ Alias "${p.code.aliasName}" present in ${tildify(rcPath)}`);
       } else {
-        console.log(`    ✗ Alias "${p.code.aliasName}" missing from ${tildify(rcPathForShell(shell))}`);
+        console.log(`    ✗ Alias "${p.code.aliasName}" missing from ${tildify(rcPath)}`);
         t.problems++;
       }
     }

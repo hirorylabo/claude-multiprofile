@@ -35,6 +35,7 @@ import { resyncDenyRules } from "../permissions.js";
 import {
   addAlias,
   removeAlias,
+  profileShell,
   defaultConfigDirFor,
   defaultAliasNameFor,
   defaultGhConfigDirFor,
@@ -251,7 +252,7 @@ export async function rename(args = []) {
       }
     }
     if (newCode.aliasName !== profile.code.aliasName) {
-      removeAlias(profile.code.aliasName);
+      removeAlias(profile.code.aliasName, profileShell(profile));
     }
     // The gh config dir lives inside the profile's config dir, so it moved
     // with it above. Recompute it from the new location so the rewritten
@@ -263,6 +264,7 @@ export async function rename(args = []) {
       aliasName: newCode.aliasName,
       configDir: newCode.configDir,
       ghConfigDir: newCode.ghConfigDir,
+      ...profileShell(profile),
     });
     newCode.rcPath = rcPath;
     ok(`Alias "${newCode.aliasName}" written to ${pathStr(tildify(rcPath))}.`);

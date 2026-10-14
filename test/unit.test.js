@@ -2232,3 +2232,62 @@ test("getBundleName and setBundleName: rename a launcher left as \"staged\", spa
   assert.equal(getBundleName(app), "Claude Client Acme");
   assert.equal(getBundleName(path.join(root, "missing.app")), null);
 });
+
+// #21: a profile's alias lives in the rc file recorded when it was added.
+// Run from a session whose $SHELL is different (a Claude Code session set up
+// with bash, say), status and doctor used to look in that shell's file and
+// report every alias missing.
+
+test("status and doctor look for each alias in the rc file the profile recorded, whatever $SHELL says", async () => {
+  const { execFileSync } = await import("node:child_process");
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cmp-rc-"));
+  const home = path.join(root, "home");
+  const cfg = path.join(root, "config");
+  const work = path.join(home, ".claude-work");
+  fs.mkdirSync(work, { recursive: true });
+  const zshrc = path.join(home, ".zshrc");
+  fs.writeFileSync(zshrc, [
+    "# >>> claude-multiprofile >>>",
+    `alias claude-work='CLAUDE_CONFIG_DIR="${work}" claude'`,
+    "# <<< claude-multiprofile <<<",
+    "",
+  ].join("\n"));
+  fs.mkdirSync(path.join(cfg, "claude-multiprofile"), { recursive: true });
+  fs.writeFileSync(path.join(cfg, "claude-multiprofile", "profiles.json"), JSON.stringify({
+    version: 1,
+    profiles: [{ name: "work", type: "code", desktop: null, code: { configDir: work, aliasName: "claude-work", shell: "zsh", rcPath: zshrc } }],
+  }));
+  const run = (...args) => {
+    try {
+      return execFileSync(process.execPath, [path.resolve("bin/claude-multiprofile.js"), ...args], {
+        encoding: "utf8",
+        env: { ...process.env, HOME: home, XDG_CONFIG_HOME: cfg, SHELL: "/bin/bash", NO_COLOR: "1" },
+        timeout: 60_000,
+      });
+    } catch (e) {
+      // doctor exits non-zero on unrelated findings in a bare sandbox.
+      return String(e.stdout || "");
+    }
+  };
+
+  const status = run("status");
+  assert.match(status, /✓ Shell alias "claude-work" in ~\/\.zshrc/);
+  const doctor = run("doctor");
+  assert.match(doctor, /✓ Alias "claude-work" present in ~\/\.zshrc/);
+  assert.doesNotMatch(doctor, /missing from/);
+
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("profileShell prefers what the profile recorded, and falls back to $SHELL for older entries", async () => {
+  const { profileShell } = await import("../src/code.js");
+  assert.deepEqual(profileShell({ code: { shell: "zsh", rcPath: "/x/.zshrc" } }), { shell: "zsh", rcPath: "/x/.zshrc" });
+  assert.deepEqual(profileShell({ code: { shell: "fish" } }), { shell: "fish", rcPath: rcPathForShell("fish") });
+  const saved = process.env.SHELL;
+  process.env.SHELL = "/bin/bash";
+  try {
+    assert.deepEqual(profileShell({ code: {} }), { shell: "bash", rcPath: rcPathForShell("bash") });
+  } finally {
+    if (saved === undefined) delete process.env.SHELL; else process.env.SHELL = saved;
+  }
+});
