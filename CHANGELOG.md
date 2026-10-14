@@ -3,6 +3,47 @@
 All notable changes to claude-multiprofile. Versions follow semver; the
 project is pre-1.0, so minor breakage may occur between 0.x releases.
 
+## 0.1.35 (2026-10-13)
+
+### Fixed
+
+- **`status` and `doctor` reported every alias missing when run from a
+  different shell.** Reported by @picosam in #21. Each profile records the rc
+  file its alias was written to, but both commands looked in the file for
+  the current `$SHELL` instead. From a Claude Code session set up with bash
+  on a zsh machine, every alias read as missing although it was in
+  `~/.zshrc` all along. They now check the file each profile recorded, and
+  `remove`, `rename` and turning on per-profile gh logins edit that file too,
+  so none of them can write an alias into a file your login shell never
+  reads. Profiles from before the rc path was recorded still fall back to
+  `$SHELL`.
+- **Launchers showed up as "staged" in Raycast, Alfred and the app
+  switcher.** Fixed by @Onatcer in #14: launchers are compiled under their own
+  file name, so new ones are named after themselves. Launchers created since
+  v0.1.24 keep the old name because a rebuild only swaps the script inside
+  them, so `doctor` now finds launchers named exactly "staged" and `--fix`
+  renames them after their file. A name you set yourself is never touched.
+
+### Security
+
+Three fixes from @tajchert, each with tests:
+
+- **Profile paths are escaped in generated aliases** (#18, closes #15). A
+  config path containing quotes, `$`, or backticks could break out of the
+  alias and run as shell code when the rc file loaded. Paths are now quoted
+  as data for zsh, bash and fish.
+- **Copying into a profile never writes through a link out of it** (#19,
+  closes #16). Seeding, path rebasing and extension copying refuse a target
+  that resolves outside the profile, so a symlinked file or folder in a new
+  profile cannot redirect the copy elsewhere on disk. Review additions guard
+  the two other writers with the same exposure: the `claudeMdExcludes`
+  restore in `doctor --fix`, and `extensions` copying an extension's settings.
+- **Copied credentials are disclosed, and new profiles are owner-only**
+  (#20, closes #17). The seeding prompt now says plainly that settings and
+  MCP servers come over as they are, API keys and tokens included. New config
+  folders are created readable by you alone (0700), and the copied
+  `.claude.json` with MCP servers is written 0600.
+
 ## 0.1.34 (2026-10-13)
 
 ### Fixed
