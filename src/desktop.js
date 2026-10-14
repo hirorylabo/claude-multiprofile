@@ -536,6 +536,37 @@ export function setBundleId(appPath, bundleId) {
   return true;
 }
 
+// The launcher's display name: what Raycast, Alfred, Spotlight's app list and
+// the app switcher show. osacompile sets it from the path it compiles to, and
+// until #14 that was a temporary "staged.app", so launchers created between
+// v0.1.24 and v0.1.34 are named "staged". plutil takes the value as its own
+// argument, so names with spaces need no quoting.
+export const STAGED_LAUNCHER_NAME = "staged";
+
+export function getBundleName(appPath) {
+  const plist = path.join(appPath, "Contents", "Info.plist");
+  if (!fileExists(plist)) return null;
+  try {
+    return execFileSync("/usr/bin/plutil", ["-extract", "CFBundleName", "raw", "-o", "-", plist], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+export function setBundleName(appPath, name) {
+  const plist = path.join(appPath, "Contents", "Info.plist");
+  if (!fileExists(plist)) return false;
+  try {
+    execFileSync("/usr/bin/plutil", ["-replace", "CFBundleName", "-string", name, plist], { stdio: "pipe" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function stripQuarantine(appPath) {
   // Removes any com.apple.quarantine attribute applied by Gatekeeper. On a
   // freshly osacompile'd bundle there usually isn't one, but if the user

@@ -2195,3 +2195,40 @@ test("seedConfigDir: copied MCP credentials and the new profile are owner-only",
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+// ---------------------------------------------------------------------------
+// #14 - launchers named "staged"
+// ---------------------------------------------------------------------------
+
+test("compileApp: a new launcher is named after itself, not \"staged\"", async (t) => {
+  if (process.platform !== "darwin") {
+    t.skip("osacompile is macOS only");
+    return;
+  }
+  const { compileApp, getBundleName } = await import("../src/desktop.js");
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cmp-name-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const appPath = path.join(root, "Claude WORK.app");
+  compileApp({ name: "work", dataDir: path.join(root, "d"), appPath, claudeAppPath: "/Applications/Claude.app" });
+  // Raycast, Alfred and the app switcher show this, so "staged" (the temporary
+  // folder it used to be compiled in) leaked straight into them.
+  assert.equal(getBundleName(appPath), "Claude WORK");
+});
+
+test("getBundleName and setBundleName: rename a launcher left as \"staged\", spaces and all", async (t) => {
+  if (process.platform !== "darwin") {
+    t.skip("plutil is macOS only");
+    return;
+  }
+  const { getBundleName, setBundleName, STAGED_LAUNCHER_NAME } = await import("../src/desktop.js");
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cmp-name-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const app = path.join(root, "Claude Client Acme.app");
+  fs.mkdirSync(path.join(app, "Contents"), { recursive: true });
+  fs.writeFileSync(path.join(app, "Contents", "Info.plist"),
+    `<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleName</key><string>staged</string></dict></plist>`);
+  assert.equal(getBundleName(app), STAGED_LAUNCHER_NAME);
+  assert.equal(setBundleName(app, "Claude Client Acme"), true);
+  assert.equal(getBundleName(app), "Claude Client Acme");
+  assert.equal(getBundleName(path.join(root, "missing.app")), null);
+});

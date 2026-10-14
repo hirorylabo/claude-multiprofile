@@ -27,6 +27,9 @@ import { detectDefaults } from "../detect.js";
 import { resolveClaude } from "../claudebin.js";
 import {
   getBundleId,
+  getBundleName,
+  setBundleName,
+  STAGED_LAUNCHER_NAME,
   setBundleId,
   uniqueBundleId,
   launcherCodeConfigDir,
@@ -463,6 +466,40 @@ function refreshLauncher(appPath) {
     execFileSync(LSREGISTER, ["-f", appPath], { stdio: "pipe" });
   } catch {
     // Non-fatal; registration catches up on its own.
+  }
+}
+
+// ---- Check: launcher names ---------------------------------------------------
+//
+// Launchers created between v0.1.24 and v0.1.34 are named "staged", from the
+// temporary folder they were compiled in (#14), and that is the name Raycast,
+// Alfred and the app switcher show. Only that exact name is changed: a name
+// the user gave a launcher is theirs.
+
+function checkLauncherNames(t, reg, fix) {
+  if (!isMac()) return;
+  const stuck = reg.profiles.filter(
+    (p) => p.desktop && p.desktop.appPath && fileExists(p.desktop.appPath) &&
+      getBundleName(p.desktop.appPath) === STAGED_LAUNCHER_NAME
+  );
+  if (stuck.length === 0) return;
+
+  step("Launcher names");
+  for (const p of stuck) {
+    const name = path.basename(p.desktop.appPath, ".app");
+    warn(`${p.name}: its launcher shows as "${STAGED_LAUNCHER_NAME}" in Raycast, Alfred and the app switcher.`);
+    if (fix) {
+      if (setBundleName(p.desktop.appPath, name)) {
+        refreshLauncher(p.desktop.appPath);
+        ok(`  Repaired: renamed to "${name}".`);
+      } else {
+        err("  Could not rename it.");
+        t.problems++;
+      }
+    } else {
+      info(`  Repair with ${command("claude-multiprofile doctor --fix")}`);
+      t.warnings++;
+    }
   }
 }
 
@@ -1467,6 +1504,7 @@ export async function doctor(args = []) {
   checkOwnVersion(t, currentVersion);
   checkProfiles(t, reg);
   checkLauncherBundleIds(t, reg, fix);
+  checkLauncherNames(t, reg, fix);
   checkLauncherEnv(t, reg, fix);
   checkAccountCollisions(t, reg);
   checkAppClones(t, reg, fix);
