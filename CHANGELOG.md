@@ -3,6 +3,29 @@
 All notable changes to claude-multiprofile. Versions follow semver; the
 project is pre-1.0, so minor breakage may occur between 0.x releases.
 
+## 0.1.36 (2026-10-16)
+
+### Fixed
+
+- **A profile named "claude-something" got a doubled name.** Reported in
+  #24. The tool already puts Claude in front of everything it names, so a
+  profile called `claude-qpg` became `Claude Claude Qpg.app` and the command
+  `claude-claude-qpg`. `add` and `rename` now refuse a new name that starts
+  with "claude-" and suggest the name without it. A profile that already has
+  such a name keeps working, and `rename` can take it to a shorter one.
+
+### Documentation
+
+- **Why "Sign in with Google" can hang in a new profile** (#24). For Google,
+  Claude Desktop uses Apple's in-app sign-in sheet unless it believes it is
+  the app that handles `claude://` links, and it decides that by bundle ID. A
+  profile's copy shares Claude's bundle ID, so it always signs in through the
+  browser instead, and the `claude://` link that finishes the sign-in goes to
+  the main Claude if it is open, which ignores it. The README now explains
+  this next to the workaround: quit every other Claude window for the
+  profile's first sign-in. A profile with its own bundle ID (#22, in review)
+  would use the in-app sheet and avoid it.
+
 ## 0.1.35 (2026-10-13)
 
 ### Fixed
