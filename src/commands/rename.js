@@ -50,7 +50,7 @@ import {
 } from "../desktop.js";
 import { clonePathFor, cloneIsRunning } from "../appclone.js";
 import { moveUpdateBlock } from "../updates.js";
-import { RESERVED_NAMES } from "./add.js";
+import { RESERVED_NAMES, withoutClaudePrefix } from "./add.js";
 import {
   header,
   ok,
@@ -158,6 +158,7 @@ export async function rename(args = []) {
         if (cleaned === oldName) return "That's the current name.";
         if (RESERVED_NAMES[cleaned]) return `"${cleaned}" is reserved. It would collide with ${RESERVED_NAMES[cleaned]}.`;
         if (findProfile(cleaned)) return `Profile "${cleaned}" already exists.`;
+        if (withoutClaudePrefix(cleaned)) return `Leave out "claude-": the tool adds it. Suggestion: "${withoutClaudePrefix(cleaned)}"`;
         return true;
       },
     });
@@ -176,6 +177,11 @@ export async function rename(args = []) {
   // command line never goes through the prompt.
   if (RESERVED_NAMES[newName]) {
     err(`"${newName}" is reserved. It would collide with ${RESERVED_NAMES[newName]}.`);
+    process.exit(1);
+  }
+  // The tool adds "Claude"/"claude-" to everything it names (#24).
+  if (withoutClaudePrefix(newName)) {
+    err(`Leave out "claude-": the tool adds it, so "${newName}" would become claude-${newName}. Try "${withoutClaudePrefix(newName)}".`);
     process.exit(1);
   }
 

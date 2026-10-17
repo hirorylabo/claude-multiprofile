@@ -84,6 +84,16 @@ export const RESERVED_NAMES = {
   "3p": "the main Claude's local configuration folder (~/Library/Application Support/Claude-3p)",
 };
 
+// Every name the tool derives already starts with Claude: the launcher is
+// "Claude <Name>.app", the alias "claude-<name>", the folders ~/.claude-<name>
+// and Claude-<NAME>. A name that starts with "claude" itself doubles it, as in
+// "Claude Claude Qpg.app" and `claude-claude-qpg` (#24). Returns the name
+// without the prefix, or null when there is nothing to drop.
+export function withoutClaudePrefix(name) {
+  const m = String(name).match(/^claude-+(.+)$/);
+  return m ? m[1] : null;
+}
+
 // A complete profile can still gain something: its own GitHub CLI login, if
 // gh is installed and the profile has a Code half that is not isolated yet.
 export function canEnableGh(profile, ghAvailable = hasGhCli()) {
@@ -175,6 +185,11 @@ export async function add() {
       }
       if (RESERVED_NAMES[cleaned]) {
         return `"${cleaned}" is reserved. It would collide with ${RESERVED_NAMES[cleaned]}. Pick another name.`;
+      }
+      // An existing profile keeps whatever name it already has.
+      const shorter = withoutClaudePrefix(cleaned);
+      if (shorter && !findProfile(cleaned)) {
+        return `Leave out "claude-": the tool adds it, so "${cleaned}" would become Claude ${titleCase(cleaned)}.app and the command claude-${cleaned}. Suggestion: "${shorter}"`;
       }
       // An existing name is only an error when there is nothing left to add.
       // A Desktop-only profile that needs Claude Code (or the reverse) is a

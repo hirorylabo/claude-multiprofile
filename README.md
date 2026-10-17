@@ -313,9 +313,11 @@ This is the part most guides skip and most users get burned by.
 
 ### Desktop: signing in for the first time
 
-Claude Desktop's sign-in flow uses a `claude://` deep link that macOS hands to whichever Claude instance is running. If two are open at once, the auth token can land on the wrong one and you'll end up with both profiles signed into the same account.
+Some of Claude Desktop's sign-in methods finish in your browser, which hands the result back through a `claude://` link. macOS delivers that link to a running Claude, and it cannot tell a profile's copy from your main Claude: they share a bundle ID. If the main Claude is open, the link can reach it instead of the profile, and the sign-in never completes ([#24](https://github.com/jmdarre-v/claude-multiprofile/issues/24)).
 
-The fix is simple but important:
+"Sign in with Google" is currently always one of these. Claude uses Apple's in-app sign-in sheet unless it believes it is the app that handles `claude://` links, and it decides that by bundle ID, so a profile's copy always believes it and goes through the browser.
+
+So, for the first sign-in:
 
 1. Quit any other Claude window with **Cmd+Q** before doing the very first launch of the new profile.
 2. Double-click the new launcher (or run `open ~/Applications/Claude\ WORK.app`).

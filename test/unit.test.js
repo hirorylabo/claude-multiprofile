@@ -2291,3 +2291,12 @@ test("profileShell prefers what the profile recorded, and falls back to $SHELL f
     if (saved === undefined) delete process.env.SHELL; else process.env.SHELL = saved;
   }
 });
+
+test("withoutClaudePrefix: a name that would double the Claude the tool adds (#24)", async () => {
+  const { withoutClaudePrefix } = await import("../src/commands/add.js");
+  assert.equal(withoutClaudePrefix("claude-qpg"), "qpg");
+  assert.equal(withoutClaudePrefix("claude--work"), "work");
+  assert.equal(withoutClaudePrefix("claude"), null, "nothing left to keep");
+  assert.equal(withoutClaudePrefix("claudette"), null, "only the word itself");
+  assert.equal(withoutClaudePrefix("work"), null);
+});
