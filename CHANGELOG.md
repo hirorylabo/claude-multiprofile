@@ -3,6 +3,28 @@
 All notable changes to claude-multiprofile. Versions follow semver; the
 project is pre-1.0, so minor breakage may occur between 0.x releases.
 
+## 0.1.37 (2026-10-20)
+
+### Changed
+
+- **`add` now suggests the sign-in that works with your other Claude open.**
+  Found by @hirorylabo in #24: in a new Desktop profile, choose "Continue
+  with email" and type the code from the email into the profile's window.
+  Nothing goes through `claude://`, so the main Claude can stay open, and
+  both stay signed in to their own accounts. Don't click the link in the
+  email, which does go through `claude://`. The end of `add` now says this
+  first, and keeps "quit every other Claude window" for Google and other
+  sign-ins that finish in the browser.
+
+### Not merged
+
+- **Giving each profile's copy its own app identity** (#22, by
+  @roccodebellis) was declined. Done correctly, it means the tool re-signs
+  Claude, keeps a code-signing key in your login keychain, and asks for your
+  login password after every Claude update. That is more than this tool
+  should carry, and the email code above covers the sign-in problem that
+  most needed it. The investigation behind it found the cause of #24.
+
 ## 0.1.36 (2026-10-16)
 
 ### Fixed
@@ -23,8 +45,8 @@ project is pre-1.0, so minor breakage may occur between 0.x releases.
   browser instead, and the `claude://` link that finishes the sign-in goes to
   the main Claude if it is open, which ignores it. The README now explains
   this next to the workaround: quit every other Claude window for the
-  profile's first sign-in. A profile with its own bundle ID (#22, in review)
-  would use the in-app sheet and avoid it.
+  profile's first sign-in. (This entry first said a profile with its own
+  bundle ID, #22, would avoid it. #22 was declined, see 0.1.37.)
 
 ## 0.1.35 (2026-10-13)
 
