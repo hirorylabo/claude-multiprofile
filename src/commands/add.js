@@ -906,22 +906,23 @@ function printNextSteps({ name, desktopResult, codeResult }) {
     step("Next: sign in to Claude Desktop");
     explain(`
       The first time you launch the new Desktop profile, you'll need to sign
-      in with the account that should belong to it. Do this carefully:
+      in with the account that should belong to it.
 
-        1. Quit any other Claude window first (Cmd+Q from the menu bar).
-           Claude's sign-in flow uses a claude:// deep link that gets routed
-           to whatever Claude instance is running. If two are open at once,
-           the token can land on the wrong one.
+      Easiest, with your other Claude still open: choose "Continue with
+      email" and type the code from the email into the profile's window.
+      Don't click the link in that email.
 
+      Signing in with Google, or any way that finishes in your browser,
+      answers through a claude:// link, and macOS can hand it to your other
+      Claude instead, which ignores it (#24). For those:
+
+        1. Quit every other Claude window first (Cmd+Q from the menu bar).
         2. Double-click the new launcher (or run the open command below).
-
         3. Sign in with the account for this profile.
 
-        4. Quit the new profile (Cmd+Q) once you've confirmed it's logged in.
-
-      From now on, both profiles can run at the same time. Open your default
-      Claude from the Dock for the original account, and your new launcher
-      for this one.
+      Once it's signed in, both profiles can run at the same time. Open your
+      default Claude from the Dock for the original account, and your new
+      launcher for this one.
     `);
     info("First-launch command (only needed if you didn't drag the .app yet):");
     console.log(
